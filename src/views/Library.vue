@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
 import { storeToRefs } from 'pinia'
 
@@ -9,6 +9,25 @@ const { sentences } = storeToRefs(store)
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
 const quick = ref('')
+const showForm = ref(false)
+const visibleCount = ref(20)
+
+const visibleSentences = computed(() =>
+  sentences.value.slice(0, visibleCount.value)
+)
+
+function onScroll() {
+  if (
+    window.innerHeight + window.scrollY >=
+    document.body.offsetHeight - 100 &&
+    visibleCount.value < sentences.value.length
+  ) {
+    visibleCount.value += 20
+  }
+}
+
+onMounted(() => window.addEventListener('scroll', onScroll))
+onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 function save() {
   if (!form.text.trim() || !form.translation.trim()) return
@@ -53,12 +72,19 @@ function quickAdd() {
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
       <textarea
         v-model="quick"
-        placeholder="Quick add: one '==sentence==（translation）' per line"
+        placeholder="Quick add: one '==sentence==（translation）' per line" 
         class="input"
       />
       <button type="submit" class="btn">Quick Add</button>
     </form>
-    <form @submit.prevent="save" class="space-y-2 mb-6">
+    <button
+      class="btn-secondary mb-4"
+      type="button"
+      @click="showForm = !showForm"
+    >
+      {{ showForm ? 'Hide Manual Add' : 'Show Manual Add' }}
+    </button>
+    <form v-if="showForm" @submit.prevent="save" class="space-y-2 mb-6">
       <textarea v-model="form.text" placeholder="Sentence" class="input" />
       <input v-model="form.translation" placeholder="Translation" class="input" />
       <div class="space-x-2">
@@ -69,12 +95,12 @@ function quickAdd() {
 
     <ul class="space-y-2">
       <li
-        v-for="item in sentences"
+        v-for="item in visibleSentences"
         :key="item.id"
         class="bg-white shadow p-3 rounded flex items-start"
       >
-        <div class="flex-1 mr-4">
-          <p class="text-gray-600" v-html="item.text"></p>
+        <div class="flex-1 mr-4 min-w-0">
+          <p class="text-gray-600 truncate" v-html="item.text"></p>
           <p class="font-semibold" v-html="item.translation"></p>
         </div>
         <div class="flex-shrink-0 flex items-center space-x-2">
