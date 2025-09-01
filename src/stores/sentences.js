@@ -4,6 +4,7 @@ import { ref } from 'vue'
 export const useSentencesStore = defineStore('sentences', () => {
   const sentences = ref([])
   const loading = ref(false)
+  const loading = ref(false)
 
   function formatText(str) {
     return str
@@ -20,6 +21,9 @@ export const useSentencesStore = defineStore('sentences', () => {
   async function load() {
     loading.value = true
     try {
+  async function load() {
+    loading.value = true
+    try {
       const res = await fetch('/api/sentences')
       if (!res.ok) return
       sentences.value = await res.json()
@@ -27,7 +31,14 @@ export const useSentencesStore = defineStore('sentences', () => {
       loading.value = false
     }
   }
+    } finally {
+      loading.value = false
+    }
+  }
 
+  async function add(text, translation) {
+    loading.value = true
+    try {
   async function add(text, translation) {
     loading.value = true
     try {
@@ -60,6 +71,10 @@ export const useSentencesStore = defineStore('sentences', () => {
       loading.value = false
     }
   }
+    } finally {
+      loading.value = false
+    }
+  }
 
   async function update(id, text, translation) {
     loading.value = true
@@ -79,13 +94,20 @@ export const useSentencesStore = defineStore('sentences', () => {
       })
       const item = await res.json()
       const idx = sentences.value.findIndex(s => s.id === id)
-      if (idx !== -1) sentences.value[idx] = item
+      if (idx !== -1) Object.assign(sentences.value[idx], item)
     } finally {
       loading.value = false
     }
   }
 
   async function remove(id) {
+    loading.value = true
+    try {
+      await fetch(`/api/sentences?id=${id}`, { method: 'DELETE' })
+      sentences.value = sentences.value.filter(s => s.id !== id)
+    } finally {
+      loading.value = false
+    }
     loading.value = true
     try {
       await fetch(`/api/sentences?id=${id}`, { method: 'DELETE' })

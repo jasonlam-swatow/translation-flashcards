@@ -5,12 +5,14 @@ import { storeToRefs } from 'pinia'
 
 const store = useSentencesStore()
 const { sentences, loading } = storeToRefs(store)
+const { sentences, loading } = storeToRefs(store)
 
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
 const quick = ref('')
 const showForm = ref(false)
 const visibleCount = ref(20)
+const preview = ref(null)
 const preview = ref(null)
 
 const visibleSentences = computed(() =>
@@ -47,9 +49,11 @@ function onScroll() {
     form.text = item.rawText
     form.translation = item.rawTranslation
     editingId.value = item.id
+    showForm.value = true
   }
 
   async function remove(id) {
+    if (!confirm('Delete this sentence?')) return
     if (!confirm('Delete this sentence?')) return
     await store.remove(id)
   }
@@ -68,6 +72,14 @@ function reset() {
       await store.add(text.trim(), translation.trim())
     }
     quick.value = ''
+  }
+
+  function openPreview(item) {
+    preview.value = item
+  }
+
+  function closePreview() {
+    preview.value = null
   }
 
   function openPreview(item) {
@@ -185,7 +197,12 @@ function reset() {
           class="flex-1 mr-4 min-w-0 cursor-pointer"
           @click="openPreview(item)"
         >
+        <div
+          class="flex-1 mr-4 min-w-0 cursor-pointer"
+          @click="openPreview(item)"
+        >
           <p class="font-semibold truncate" v-html="item.text"></p>
+          <p class="text-gray-600 truncate" v-html="item.translation"></p>
           <p class="text-gray-600 truncate" v-html="item.translation"></p>
         </div>
         <div class="flex-shrink-0 flex flex-col items-center space-y-2">
@@ -253,6 +270,7 @@ function reset() {
     <div
       v-if="preview"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40"
+      @click.self="closePreview"
     >
       <div class="w-full max-w-md h-64 bg-white shadow rounded p-4 relative">
         <button
@@ -305,3 +323,12 @@ function reset() {
     </div>
   </div>
 </template>
+
+<style scoped>
+::v-deep(b) {
+  color: #3b82f6;
+}
+::v-deep(rt) {
+  color: orangered;
+}
+</style>
