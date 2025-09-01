@@ -59,8 +59,8 @@ function quickAdd() {
       <button type="submit" class="btn">Quick Add</button>
     </form>
     <form @submit.prevent="save" class="space-y-2 mb-6">
-      <input v-model="form.translation" placeholder="Translation" class="input" />
       <textarea v-model="form.text" placeholder="Sentence" class="input" />
+      <input v-model="form.translation" placeholder="Translation" class="input" />
       <div class="space-x-2">
         <button type="submit" class="btn">{{ editingId ? 'Save' : 'Add' }}</button>
         <button v-if="editingId" type="button" class="btn-secondary" @click="reset">Cancel</button>
@@ -68,12 +68,16 @@ function quickAdd() {
     </form>
 
     <ul class="space-y-2">
-      <li v-for="item in sentences" :key="item.id" class="bg-white shadow p-3 rounded flex justify-between items-start">
-        <div>
-          <p class="font-semibold" v-html="item.translation"></p>
+      <li
+        v-for="item in sentences"
+        :key="item.id"
+        class="bg-white shadow p-3 rounded flex items-start"
+      >
+        <div class="flex-1 mr-4">
           <p class="text-gray-600" v-html="item.text"></p>
+          <p class="font-semibold" v-html="item.translation"></p>
         </div>
-        <div class="space-x-2">
+        <div class="flex-shrink-0 flex items-center space-x-2">
           <button class="text-blue-500" @click="edit(item)">Edit</button>
           <button class="text-red-500" @click="remove(item.id)">Delete</button>
         </div>
