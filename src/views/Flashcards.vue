@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
+import { storeToRefs } from 'pinia'
 import { useSwipe } from '@vueuse/core'
 
 const store = useSentencesStore()
+const { loading, sentences } = storeToRefs(store)
 const order = ref([])
 const index = ref(0)
 const showSentence = ref(false)
@@ -25,7 +27,7 @@ function shuffle(arr) {
 
 onMounted(async () => {
   await store.load()
-  order.value = shuffle([...store.sentences])
+  order.value = shuffle([...sentences.value])
 })
 
 function nextCard() {
@@ -63,6 +65,7 @@ function cancelEdit() {
 
 async function removeCurrent() {
   if (!current.value) return
+  if (!confirm('Delete this sentence?')) return
   const id = current.value.id
   await store.remove(id)
   order.value = order.value.filter(s => s.id !== id)
@@ -256,6 +259,32 @@ const current = computed(() => order.value[index.value])
           </button>
         </div>
       </form>
+    </div>
+
+    <div
+      v-if="loading"
+      class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-40"
+    >
+      <svg
+        class="animate-spin h-8 w-8 text-blue-500"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
     </div>
   </div>
 </template>
