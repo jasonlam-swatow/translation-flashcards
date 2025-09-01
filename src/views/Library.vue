@@ -4,13 +4,14 @@ import { useSentencesStore } from '../stores/sentences'
 import { storeToRefs } from 'pinia'
 
 const store = useSentencesStore()
-const { sentences } = storeToRefs(store)
+const { sentences, loading } = storeToRefs(store)
 
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
 const quick = ref('')
 const showForm = ref(false)
 const visibleCount = ref(20)
+const preview = ref(null)
 
 const visibleSentences = computed(() =>
   sentences.value.slice(0, visibleCount.value)
@@ -46,9 +47,11 @@ function onScroll() {
     form.text = item.rawText
     form.translation = item.rawTranslation
     editingId.value = item.id
+    showForm.value = true
   }
 
   async function remove(id) {
+    if (!confirm('Delete this sentence?')) return
     await store.remove(id)
   }
 
@@ -66,6 +69,14 @@ function reset() {
       await store.add(text.trim(), translation.trim())
     }
     quick.value = ''
+  }
+
+  function openPreview(item) {
+    preview.value = item
+  }
+
+  function closePreview() {
+    preview.value = null
   }
 </script>
 
@@ -171,9 +182,12 @@ function reset() {
         :key="item.id"
         class="bg-white shadow p-3 rounded flex items-start"
       >
-        <div class="flex-1 mr-4 min-w-0">
+        <div
+          class="flex-1 mr-4 min-w-0 cursor-pointer"
+          @click="openPreview(item)"
+        >
           <p class="font-semibold truncate" v-html="item.text"></p>
-          <p class="text-gray-600" v-html="item.translation"></p>
+          <p class="text-gray-600 truncate" v-html="item.translation"></p>
         </div>
         <div class="flex-shrink-0 flex flex-col items-center space-y-2">
           <button class="text-blue-500" @click="edit(item)" aria-label="Edit">
@@ -236,5 +250,69 @@ function reset() {
       </svg>
       Start Flashcards
     </router-link>
+
+    <div
+      v-if="preview"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40"
+      @click.self="closePreview"
+    >
+      <div class="w-full max-w-md h-64 bg-white shadow rounded p-4 relative">
+        <button
+          class="absolute top-2 right-2 text-gray-500"
+          @click="closePreview"
+          aria-label="Close"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div class="h-full flex flex-col justify-center text-xl text-center overflow-auto">
+          <div class="mb-4" v-html="preview.translation"></div>
+          <div v-html="preview.text"></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="loading"
+      class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50"
+    >
+      <svg
+        class="animate-spin h-8 w-8 text-blue-500"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        ></path>
+      </svg>
+    </div>
   </div>
 </template>
+
+<style scoped>
+::v-deep(b) {
+  color: #3b82f6;
+}
+::v-deep(rt) {
+  color: orangered;
+}
+</style>

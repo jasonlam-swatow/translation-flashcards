@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 export const useSentencesStore = defineStore('sentences', () => {
   const sentences = ref([])
+  const loading = ref(false)
 
   function formatText(str) {
     return str
@@ -16,13 +17,20 @@ export const useSentencesStore = defineStore('sentences', () => {
     return str.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '<b>$1<\/b>')
   }
 
-    async function load() {
+  async function load() {
+    loading.value = true
+    try {
       const res = await fetch('/api/sentences')
       if (!res.ok) return
       sentences.value = await res.json()
+    } finally {
+      loading.value = false
     }
+  }
 
-    async function add(text, translation) {
+  async function add(text, translation) {
+    loading.value = true
+    try {
       const rawText = stripLinks(text)
       const rawTranslation = stripLinks(translation)
       const res = await fetch('/api/sentences', {
@@ -48,31 +56,44 @@ export const useSentencesStore = defineStore('sentences', () => {
         }
       }
       sentences.value.push(item)
+    } finally {
+      loading.value = false
     }
+  }
 
   async function update(id, text, translation) {
-    const rawText = stripLinks(text)
-    const rawTranslation = stripLinks(translation)
-    const res = await fetch('/api/sentences', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id,
-        text: formatText(rawText),
-        translation: formatText(rawTranslation),
-        rawText,
-        rawTranslation,
-      }),
-    })
-    const item = await res.json()
-    const idx = sentences.value.findIndex(s => s.id === id)
-    if (idx !== -1) sentences.value[idx] = item
+    loading.value = true
+    try {
+      const rawText = stripLinks(text)
+      const rawTranslation = stripLinks(translation)
+      const res = await fetch('/api/sentences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          text: formatText(rawText),
+          translation: formatText(rawTranslation),
+          rawText,
+          rawTranslation,
+        }),
+      })
+      const item = await res.json()
+      const idx = sentences.value.findIndex(s => s.id === id)
+      if (idx !== -1) Object.assign(sentences.value[idx], item)
+    } finally {
+      loading.value = false
+    }
   }
 
   async function remove(id) {
-    await fetch(`/api/sentences?id=${id}`, { method: 'DELETE' })
-    sentences.value = sentences.value.filter(s => s.id !== id)
+    loading.value = true
+    try {
+      await fetch(`/api/sentences?id=${id}`, { method: 'DELETE' })
+      sentences.value = sentences.value.filter(s => s.id !== id)
+    } finally {
+      loading.value = false
+    }
   }
 
-  return { sentences, load, add, update, remove }
+  return { sentences, load, add, update, remove, loading }
 })
