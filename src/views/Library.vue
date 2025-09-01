@@ -8,6 +8,7 @@ const { sentences } = storeToRefs(store)
 
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
+const quick = ref('')
 
 function save() {
   if (!form.text.trim() || !form.translation.trim()) return
@@ -34,11 +35,22 @@ function reset() {
   form.translation = ''
   editingId.value = null
 }
+
+function quickAdd() {
+  const match = quick.value.match(/==([\s\S]+?)==（([\s\S]+?)）/)
+  if (!match) return
+  store.add(match[1].trim(), match[2].trim())
+  quick.value = ''
+}
 </script>
 
 <template>
   <div class="p-4 max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold mb-4">Sentence Library</h1>
+    <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
+      <textarea v-model="quick" placeholder="Quick add: ==sentence==（translation）" class="input" />
+      <button type="submit" class="btn">Quick Add</button>
+    </form>
     <form @submit.prevent="save" class="space-y-2 mb-6">
       <input v-model="form.translation" placeholder="Translation" class="input" />
       <textarea v-model="form.text" placeholder="Sentence" class="input" />
