@@ -80,10 +80,12 @@ const current = computed(() => order.value[index.value])
         @click="flip"
       >
         <div class="face front flex items-center justify-center text-xl">
-          {{ current ? current.translation : 'No cards' }}
+          <span v-if="current" v-html="current.translation"></span>
+          <span v-else>No cards</span>
         </div>
         <div class="face back flex items-center justify-center text-xl">
-          {{ current ? current.text : 'No cards' }}
+          <span v-if="current" v-html="current.text"></span>
+          <span v-else>No cards</span>
         </div>
       </div>
     </div>

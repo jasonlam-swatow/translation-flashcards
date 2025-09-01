@@ -12,7 +12,7 @@ const editingId = ref(null)
 function save() {
   if (!form.text.trim() || !form.translation.trim()) return
   if (editingId.value) {
-    store.update(editingId.value, { text: form.text, translation: form.translation })
+    store.update(editingId.value, form.text, form.translation)
   } else {
     store.add(form.text, form.translation)
   }
@@ -20,8 +20,8 @@ function save() {
 }
 
 function edit(item) {
-  form.text = item.text
-  form.translation = item.translation
+  form.text = item.rawText
+  form.translation = item.rawTranslation
   editingId.value = item.id
 }
 
@@ -51,8 +51,8 @@ function reset() {
     <ul class="space-y-2">
       <li v-for="item in sentences" :key="item.id" class="bg-white shadow p-3 rounded flex justify-between items-start">
         <div>
-          <p class="font-semibold">{{ item.translation }}</p>
-          <p class="text-gray-600">{{ item.text }}</p>
+          <p class="font-semibold" v-html="item.translation"></p>
+          <p class="text-gray-600" v-html="item.text"></p>
         </div>
         <div class="space-x-2">
           <button class="text-blue-500" @click="edit(item)">Edit</button>
