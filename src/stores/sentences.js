@@ -11,26 +11,36 @@ export const useSentencesStore = defineStore('sentences', () => {
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1<\/b>')
   }
 
+  // Replace wiki-style links [[url|text]] with <b>text</b> for stored raw content
+  function stripLinks(str) {
+    return str.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '<b>$1<\/b>')
+  }
+
   function add(text, translation) {
+    const rawText = stripLinks(text)
+    const rawTranslation = stripLinks(translation)
     sentences.value.push({
       id: Date.now(),
-      text: formatText(text),
-      translation: formatText(translation),
-      rawText: text,
-      rawTranslation: translation,
+      text: formatText(rawText),
+      translation: formatText(rawTranslation),
+      rawText,
+      rawTranslation,
     })
   }
 
   function update(id, text, translation) {
     const idx = sentences.value.findIndex(s => s.id === id)
-    if (idx !== -1)
+    if (idx !== -1) {
+      const rawText = stripLinks(text)
+      const rawTranslation = stripLinks(translation)
       sentences.value[idx] = {
         ...sentences.value[idx],
-        text: formatText(text),
-        translation: formatText(translation),
-        rawText: text,
-        rawTranslation: translation,
+        text: formatText(rawText),
+        translation: formatText(rawTranslation),
+        rawText,
+        rawTranslation,
       }
+    }
   }
 
   function remove(id) {
