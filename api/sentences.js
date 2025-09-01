@@ -8,11 +8,13 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
       const { text, translation, rawText, rawTranslation } = req.body
       const { rows } = await sql`INSERT INTO sentences (text, translation, raw_text, raw_translation) VALUES (${text}, ${translation}, ${rawText}, ${rawTranslation}) RETURNING id, text, translation, raw_text, raw_translation`
-      res.status(200).json(rows[0])
+      const item = rows[0] || { text, translation, raw_text: rawText, raw_translation: rawTranslation }
+      res.status(201).json(item)
     } else if (req.method === 'PUT') {
       const { id, text, translation, rawText, rawTranslation } = req.body
       const { rows } = await sql`UPDATE sentences SET text = ${text}, translation = ${translation}, raw_text = ${rawText}, raw_translation = ${rawTranslation} WHERE id = ${id} RETURNING id, text, translation, raw_text, raw_translation`
-      res.status(200).json(rows[0])
+      const item = rows[0] || { id, text, translation, raw_text: rawText, raw_translation: rawTranslation }
+      res.status(200).json(item)
     } else if (req.method === 'DELETE') {
       const { id } = req.query
       await sql`DELETE FROM sentences WHERE id = ${id}`

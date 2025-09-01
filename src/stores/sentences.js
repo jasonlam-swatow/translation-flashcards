@@ -16,27 +16,39 @@ export const useSentencesStore = defineStore('sentences', () => {
     return str.replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '<b>$1<\/b>')
   }
 
-  async function load() {
-    const res = await fetch('/api/sentences')
-    sentences.value = await res.json()
-  }
+    async function load() {
+      const res = await fetch('/api/sentences')
+      if (!res.ok) return
+      sentences.value = await res.json()
+    }
 
-  async function add(text, translation) {
-    const rawText = stripLinks(text)
-    const rawTranslation = stripLinks(translation)
-    const res = await fetch('/api/sentences', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: formatText(rawText),
-        translation: formatText(rawTranslation),
-        rawText,
-        rawTranslation,
-      }),
-    })
-    const item = await res.json()
-    sentences.value.push(item)
-  }
+    async function add(text, translation) {
+      const rawText = stripLinks(text)
+      const rawTranslation = stripLinks(translation)
+      const res = await fetch('/api/sentences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: formatText(rawText),
+          translation: formatText(rawTranslation),
+          rawText,
+          rawTranslation,
+        }),
+      })
+      let item
+      try {
+        item = await res.json()
+      } catch {
+        item = {
+          id: Date.now(),
+          text: formatText(rawText),
+          translation: formatText(rawTranslation),
+          rawText,
+          rawTranslation,
+        }
+      }
+      sentences.value.push(item)
+    }
 
   async function update(id, text, translation) {
     const rawText = stripLinks(text)
