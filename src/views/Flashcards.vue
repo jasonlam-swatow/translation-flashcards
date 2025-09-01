@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
 import { useSwipe } from '@vueuse/core'
 
@@ -12,6 +12,8 @@ const swipeClass = ref('')
 const swipeAction = ref(null)
 const incoming = ref(null)
 const incomingClass = ref('')
+const editing = ref(false)
+const editForm = reactive({ text: '', translation: '' })
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -39,6 +41,36 @@ function prevCard() {
 }
 function flip() {
   showSentence.value = !showSentence.value
+}
+
+function startEdit() {
+  if (!current.value) return
+  editForm.text = current.value.rawText
+  editForm.translation = current.value.rawTranslation
+  editing.value = true
+}
+
+function saveEdit() {
+  if (!current.value) return
+  store.update(current.value.id, editForm.text, editForm.translation)
+  editing.value = false
+}
+
+function cancelEdit() {
+  editing.value = false
+}
+
+function removeCurrent() {
+  if (!current.value) return
+  const id = current.value.id
+  store.remove(id)
+  order.value = order.value.filter(s => s.id !== id)
+  if (order.value.length) {
+    index.value = index.value % order.value.length
+  } else {
+    index.value = 0
+  }
+  showSentence.value = false
 }
 
 function handleSwipe(dir) {
@@ -75,7 +107,14 @@ const current = computed(() => order.value[index.value])
 </script>
 
 <template>
-  <div class="h-screen flex flex-col items-center justify-center p-4">
+  <div class="h-screen flex flex-col items-center justify-center p-4 relative">
+    <div
+      v-if="showSentence && current"
+      class="absolute top-4 right-4 flex space-x-2 z-20"
+    >
+      <button class="text-blue-500" @click.stop="startEdit">Edit</button>
+      <button class="text-red-500" @click.stop="removeCurrent">Delete</button>
+    </div>
     <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative">
       <div
         class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
@@ -110,6 +149,19 @@ const current = computed(() => order.value[index.value])
       <button class="btn" @click="() => handleSwipe('left')">Next</button>
     </div>
     <router-link to="/library" class="mt-4 text-blue-500">Back to Library</router-link>
+    <div
+      v-if="editing"
+      class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30"
+    >
+      <form @submit.prevent="saveEdit" class="bg-white p-4 rounded space-y-2 w-80">
+        <textarea v-model="editForm.text" class="input" placeholder="Sentence" />
+        <input v-model="editForm.translation" class="input" placeholder="Translation" />
+        <div class="flex justify-end space-x-2">
+          <button type="button" class="btn-secondary" @click="cancelEdit">Cancel</button>
+          <button type="submit" class="btn">Save</button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
