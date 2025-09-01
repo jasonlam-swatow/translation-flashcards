@@ -6,7 +6,7 @@ While reviewing, flip to the sentence side to reveal edit and delete controls in
 
 ## Persistence
 
-Sentences are stored in a Postgres database. Provide a `POSTGRES_URL` environment variable (Vercel supplies this automatically when a Neon database is linked). To initialise a fresh database run the statements in `schema.sql`.
+Sentences are stored in a Postgres database. Provide a `DATABASE_URL` environment variable (see `.env.example`; Vercel supplies this automatically when a Neon database is linked). To initialise a fresh database run the statements in `schema.sql`.
 
 ## Quick Add
 
