@@ -4,7 +4,7 @@ A simple Vue 3 application for creating and practicing foreign language sentence
 
 ## Quick Add
 
-Paste content like `==sentence==（translation）` into the library's quick add box to automatically split and format entries.
+Paste content like `==sentence==（translation）` into the library's quick add box to automatically split and format entries. For bulk entry, place each `==sentence==（translation）` pair on its own line and all of them will be added at once.
 
 ## Development
 

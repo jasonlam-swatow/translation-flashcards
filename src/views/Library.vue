@@ -37,9 +37,12 @@ function reset() {
 }
 
 function quickAdd() {
-  const match = quick.value.match(/==([\s\S]+?)==（([\s\S]+?)）/)
-  if (!match) return
-  store.add(match[1].trim(), match[2].trim())
+  const pattern = /==([\s\S]+?)==（([\s\S]+?)）/g
+  const matches = [...quick.value.matchAll(pattern)]
+  if (!matches.length) return
+  matches.forEach(([, text, translation]) => {
+    store.add(text.trim(), translation.trim())
+  })
   quick.value = ''
 }
 </script>
@@ -48,7 +51,11 @@ function quickAdd() {
   <div class="p-4 max-w-2xl mx-auto">
     <h1 class="text-2xl font-bold mb-4">Sentence Library</h1>
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
-      <textarea v-model="quick" placeholder="Quick add: ==sentence==（translation）" class="input" />
+      <textarea
+        v-model="quick"
+        placeholder="Quick add: one '==sentence==（translation）' per line"
+        class="input"
+      />
       <button type="submit" class="btn">Quick Add</button>
     </form>
     <form @submit.prevent="save" class="space-y-2 mb-6">
