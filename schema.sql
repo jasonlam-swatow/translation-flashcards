@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS sentences (
+  id SERIAL PRIMARY KEY,
+  text TEXT NOT NULL,
+  translation TEXT NOT NULL,
+  raw_text TEXT NOT NULL,
+  raw_translation TEXT NOT NULL
+);

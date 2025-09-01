@@ -23,7 +23,8 @@ function shuffle(arr) {
   return arr
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await store.load()
   order.value = shuffle([...store.sentences])
 })
 
@@ -50,9 +51,9 @@ function startEdit() {
   editing.value = true
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!current.value) return
-  store.update(current.value.id, editForm.text, editForm.translation)
+  await store.update(current.value.id, editForm.text, editForm.translation)
   editing.value = false
 }
 
@@ -60,10 +61,10 @@ function cancelEdit() {
   editing.value = false
 }
 
-function removeCurrent() {
+async function removeCurrent() {
   if (!current.value) return
   const id = current.value.id
-  store.remove(id)
+  await store.remove(id)
   order.value = order.value.filter(s => s.id !== id)
   if (order.value.length) {
     index.value = index.value % order.value.length

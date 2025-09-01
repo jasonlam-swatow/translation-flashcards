@@ -26,28 +26,31 @@ function onScroll() {
   }
 }
 
-onMounted(() => window.addEventListener('scroll', onScroll))
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+  onMounted(async () => {
+    await store.load()
+    window.addEventListener('scroll', onScroll)
+  })
+  onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
-function save() {
-  if (!form.text.trim() || !form.translation.trim()) return
-  if (editingId.value) {
-    store.update(editingId.value, form.text, form.translation)
-  } else {
-    store.add(form.text, form.translation)
+  async function save() {
+    if (!form.text.trim() || !form.translation.trim()) return
+    if (editingId.value) {
+      await store.update(editingId.value, form.text, form.translation)
+    } else {
+      await store.add(form.text, form.translation)
+    }
+    reset()
   }
-  reset()
-}
 
-function edit(item) {
-  form.text = item.rawText
-  form.translation = item.rawTranslation
-  editingId.value = item.id
-}
+  function edit(item) {
+    form.text = item.rawText
+    form.translation = item.rawTranslation
+    editingId.value = item.id
+  }
 
-function remove(id) {
-  store.remove(id)
-}
+  async function remove(id) {
+    await store.remove(id)
+  }
 
 function reset() {
   form.text = ''
@@ -55,15 +58,15 @@ function reset() {
   editingId.value = null
 }
 
-function quickAdd() {
-  const pattern = /==([\s\S]+?)==（([\s\S]+?)）/g
-  const matches = [...quick.value.matchAll(pattern)]
-  if (!matches.length) return
-  matches.forEach(([, text, translation]) => {
-    store.add(text.trim(), translation.trim())
-  })
-  quick.value = ''
-}
+  async function quickAdd() {
+    const pattern = /==([\s\S]+?)==（([\s\S]+?)）/g
+    const matches = [...quick.value.matchAll(pattern)]
+    if (!matches.length) return
+    for (const [, text, translation] of matches) {
+      await store.add(text.trim(), translation.trim())
+    }
+    quick.value = ''
+  }
 </script>
 
 <template>
