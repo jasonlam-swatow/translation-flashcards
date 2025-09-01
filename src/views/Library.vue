@@ -5,12 +5,14 @@ import { storeToRefs } from 'pinia'
 
 const store = useSentencesStore()
 const { sentences, loading } = storeToRefs(store)
+const { sentences, loading } = storeToRefs(store)
 
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
 const quick = ref('')
 const showForm = ref(false)
 const visibleCount = ref(20)
+const preview = ref(null)
 const preview = ref(null)
 
 const visibleSentences = computed(() =>
@@ -52,6 +54,7 @@ function onScroll() {
 
   async function remove(id) {
     if (!confirm('Delete this sentence?')) return
+    if (!confirm('Delete this sentence?')) return
     await store.remove(id)
   }
 
@@ -69,6 +72,14 @@ function reset() {
       await store.add(text.trim(), translation.trim())
     }
     quick.value = ''
+  }
+
+  function openPreview(item) {
+    preview.value = item
+  }
+
+  function closePreview() {
+    preview.value = null
   }
 
   function openPreview(item) {
@@ -186,7 +197,12 @@ function reset() {
           class="flex-1 mr-4 min-w-0 cursor-pointer"
           @click="openPreview(item)"
         >
+        <div
+          class="flex-1 mr-4 min-w-0 cursor-pointer"
+          @click="openPreview(item)"
+        >
           <p class="font-semibold truncate" v-html="item.text"></p>
+          <p class="text-gray-600 truncate" v-html="item.translation"></p>
           <p class="text-gray-600 truncate" v-html="item.translation"></p>
         </div>
         <div class="flex-shrink-0 flex flex-col items-center space-y-2">
