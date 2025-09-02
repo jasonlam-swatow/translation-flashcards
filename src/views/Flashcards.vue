@@ -115,13 +115,15 @@ function handleSwipe(dir) {
   }
 }
 
-function handleAnimationEnd() {
-  if (swipeAction.value === 'next') nextCard()
-  else if (swipeAction.value === 'prev') prevCard()
+function handleAnimationEnd(e) {
+  if (!e.animationName.startsWith('swipe')) return
+  const action = swipeAction.value
   swipeClass.value = ''
   incomingClass.value = ''
-  incoming.value = null
   swipeAction.value = null
+  if (action === 'next') nextCard()
+  else if (action === 'prev') prevCard()
+  incoming.value = null
 }
 
 useSwipe(cardRef, {
@@ -139,7 +141,7 @@ const current = computed(() => order.value[index.value])
       <div v-if="remaining.length" class="space-y-2">
         <label class="inline-flex items-center gap-2">
           <span>Number of sentences</span>
-          <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
+          <textarea v-model.number="sessionSize" rows="3" class="input w-24"></textarea>
         </label>
         <button class="btn" @click="startSession">Start</button>
       </div>
@@ -276,8 +278,8 @@ const current = computed(() => order.value[index.value])
       class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30"
     >
       <form @submit.prevent="saveEdit" class="bg-white p-4 rounded space-y-2 w-80">
-        <textarea v-model="editForm.text" class="input" placeholder="Sentence" />
-        <input v-model="editForm.translation" class="input" placeholder="Translation" />
+        <textarea v-model="editForm.text" rows="3" class="input" placeholder="Sentence" />
+        <textarea v-model="editForm.translation" rows="3" class="input" placeholder="Translation" />
         <div class="flex justify-end space-x-2">
           <button type="button" class="btn-secondary inline-flex items-center gap-1" @click="cancelEdit">
             <svg
