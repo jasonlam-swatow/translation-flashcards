@@ -16,6 +16,8 @@ const incoming = ref(null)
 const incomingClass = ref('')
 const editing = ref(false)
 const editForm = reactive({ text: '', translation: '' })
+const sessionSize = ref(10)
+const remaining = ref([])
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -27,18 +29,34 @@ function shuffle(arr) {
 
 onMounted(async () => {
   await store.load()
-  order.value = shuffle([...sentences.value])
+  remaining.value = [...sentences.value]
 })
 
+function startSession() {
+  if (!remaining.value.length) return
+  const size = Math.min(sessionSize.value, remaining.value.length)
+  const shuffled = shuffle([...remaining.value])
+  order.value = shuffled.slice(0, size)
+  const ids = new Set(order.value.map(s => s.id))
+  remaining.value = remaining.value.filter(s => !ids.has(s.id))
+  index.value = 0
+  showSentence.value = false
+}
+
 function nextCard() {
-  if (order.value.length) {
-    index.value = (index.value + 1) % order.value.length
+  if (!order.value.length) return
+  if (index.value < order.value.length - 1) {
+    index.value++
+    showSentence.value = false
+  } else {
+    order.value = []
+    index.value = 0
     showSentence.value = false
   }
 }
 function prevCard() {
-  if (order.value.length) {
-    index.value = (index.value - 1 + order.value.length) % order.value.length
+  if (index.value > 0) {
+    index.value--
     showSentence.value = false
   }
 }
@@ -69,8 +87,9 @@ async function removeCurrent() {
   const id = current.value.id
   await store.remove(id)
   order.value = order.value.filter(s => s.id !== id)
+  remaining.value = remaining.value.filter(s => s.id !== id)
   if (order.value.length) {
-    index.value = index.value % order.value.length
+    index.value = Math.min(index.value, order.value.length - 1)
   } else {
     index.value = 0
   }
@@ -80,12 +99,16 @@ async function removeCurrent() {
 function handleSwipe(dir) {
   if (swipeClass.value || !order.value.length) return
   if (dir === 'left') {
-    incoming.value = order.value[(index.value + 1) % order.value.length]
-    swipeAction.value = 'next'
-    swipeClass.value = 'swipe-left'
-    incomingClass.value = 'enter-left'
-  } else if (dir === 'right') {
-    incoming.value = order.value[(index.value - 1 + order.value.length) % order.value.length]
+    if (index.value < order.value.length - 1) {
+      incoming.value = order.value[index.value + 1]
+      swipeAction.value = 'next'
+      swipeClass.value = 'swipe-left'
+      incomingClass.value = 'enter-left'
+    } else {
+      nextCard()
+    }
+  } else if (dir === 'right' && index.value > 0) {
+    incoming.value = order.value[index.value - 1]
     swipeAction.value = 'prev'
     swipeClass.value = 'swipe-right'
     incomingClass.value = 'enter-right'
@@ -112,78 +135,16 @@ const current = computed(() => order.value[index.value])
 
 <template>
   <div class="flex-1 flex flex-col items-center justify-center p-4 relative">
-    <div
-      v-if="showSentence && current"
-      class="absolute top-4 right-4 flex flex-col space-y-2 z-20"
-    >
-      <button class="text-blue-500" @click.stop="startEdit" aria-label="Edit">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="w-5 h-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
-          />
-        </svg>
-      </button>
-      <button
-        class="text-red-500"
-        @click.stop="removeCurrent"
-        aria-label="Delete"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="w-5 h-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-          />
-        </svg>
-      </button>
-    </div>
-    <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative">
-      <div
-        class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
-        :class="[swipeClass, { flipped: showSentence }]"
-        @click="flip"
-        @animationend="handleAnimationEnd"
-      >
-        <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-          <span v-if="current" v-html="current.translation"></span>
-          <span v-else>No cards</span>
-        </div>
-        <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
-          <span v-if="current" v-html="current.text"></span>
-          <span v-else>No cards</span>
-        </div>
+    <div v-if="!order.length" class="space-y-4 text-center">
+      <div v-if="remaining.length" class="space-y-2">
+        <label class="inline-flex items-center gap-2">
+          <span>Number of sentences</span>
+          <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
+        </label>
+        <button class="btn" @click="startSession">Start</button>
       </div>
-      <div
-        v-if="incoming"
-        class="card incoming absolute inset-0 w-full h-full bg-white shadow rounded select-none"
-        :class="incomingClass"
-      >
-        <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-          <span v-html="incoming.translation"></span>
-        </div>
-        <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
-          <span v-html="incoming.text"></span>
-        </div>
-      </div>
-    </div>
-    <div class="flex gap-4 mt-4">
-      <button class="btn inline-flex items-center gap-1" @click="() => handleSwipe('right')">
+      <p v-else class="text-gray-500">No unseen sentences left.</p>
+      <router-link to="/library" class="text-blue-500 inline-flex items-center gap-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -194,9 +155,109 @@ const current = computed(() => order.value[index.value])
         >
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
         </svg>
-        Prev
-      </button>
-      <button class="btn inline-flex items-center gap-1" @click="() => handleSwipe('left')">
+        Back to Library
+      </router-link>
+    </div>
+    <div v-else class="flex flex-col items-center">
+      <div
+        v-if="showSentence && current"
+        class="absolute top-4 right-4 flex flex-col space-y-2 z-20"
+      >
+        <button class="text-blue-500" @click.stop="startEdit" aria-label="Edit">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
+            />
+          </svg>
+        </button>
+        <button
+          class="text-red-500"
+          @click.stop="removeCurrent"
+          aria-label="Delete"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+            />
+          </svg>
+        </button>
+      </div>
+      <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative">
+        <div
+          class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
+          :class="[swipeClass, { flipped: showSentence }]"
+          @click="flip"
+          @animationend="handleAnimationEnd"
+        >
+          <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
+            <span v-if="current" v-html="current.translation"></span>
+            <span v-else>No cards</span>
+          </div>
+          <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
+            <span v-if="current" v-html="current.text"></span>
+            <span v-else>No cards</span>
+          </div>
+        </div>
+        <div
+          v-if="incoming"
+          class="card incoming absolute inset-0 w-full h-full bg-white shadow rounded select-none"
+          :class="incomingClass"
+        >
+          <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
+            <span v-html="incoming.translation"></span>
+          </div>
+          <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
+            <span v-html="incoming.text"></span>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-4 mt-4">
+        <button class="btn inline-flex items-center gap-1" @click="() => handleSwipe('right')">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+          Prev
+        </button>
+        <button class="btn inline-flex items-center gap-1" @click="() => handleSwipe('left')">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+          Next
+        </button>
+      </div>
+      <router-link to="/library" class="mt-4 text-blue-500 inline-flex items-center gap-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -205,24 +266,11 @@ const current = computed(() => order.value[index.value])
           stroke="currentColor"
           class="w-5 h-5"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
         </svg>
-        Next
-      </button>
+        Back to Library
+      </router-link>
     </div>
-    <router-link to="/library" class="mt-4 text-blue-500 inline-flex items-center gap-1">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="1.5"
-        stroke="currentColor"
-        class="w-5 h-5"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-      </svg>
-      Back to Library
-    </router-link>
     <div
       v-if="editing"
       class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30"
