@@ -3,7 +3,11 @@
 
 <template>
   <nav class="bg-blue-600 text-white p-4 flex gap-4">
-    <RouterLink to="/library" class="font-bold inline-flex items-center gap-1">
+    <RouterLink
+      to="/library"
+      class="inline-flex items-center gap-1"
+      active-class="font-bold"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -20,7 +24,11 @@
       </svg>
       Library
     </RouterLink>
-    <RouterLink to="/flashcards" class="inline-flex items-center gap-1">
+    <RouterLink
+      to="/flashcards"
+      class="inline-flex items-center gap-1"
+      active-class="font-bold"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
