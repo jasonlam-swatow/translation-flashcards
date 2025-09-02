@@ -10,6 +10,7 @@ const order = ref([])
 const index = ref(0)
 const showSentence = ref(false)
 const cardRef = ref(null)
+const currentCard = ref(null)
 const swipeClass = ref('')
 const swipeAction = ref(null)
 const incoming = ref(null)
@@ -118,12 +119,21 @@ function handleSwipe(dir) {
 function handleAnimationEnd(e) {
   if (!e.animationName.startsWith('swipe')) return
   const action = swipeAction.value
+  const el = currentCard.value
+  if (el) {
+    el.style.transition = 'none'
+  }
   swipeClass.value = ''
   incomingClass.value = ''
   swipeAction.value = null
   if (action === 'next') nextCard()
   else if (action === 'prev') prevCard()
   incoming.value = null
+  if (el) {
+    // Force reflow before restoring transition to avoid Safari double animations
+    void el.offsetWidth
+    el.style.transition = ''
+  }
 }
 
 useSwipe(cardRef, {
@@ -141,7 +151,7 @@ const current = computed(() => order.value[index.value])
       <div v-if="remaining.length" class="space-y-2">
         <label class="inline-flex items-center gap-2">
           <span>Number of sentences</span>
-          <input v-model.number="sessionSize" class="input w-24"></input>
+          <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
         </label>
         <button class="btn" @click="startSession">Start</button>
       </div>
@@ -204,6 +214,7 @@ const current = computed(() => order.value[index.value])
       </div>
       <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative whitespace-pre-line">
         <div
+          ref="currentCard"
           class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
           :class="[swipeClass, { flipped: showSentence }]"
           @click="flip"
