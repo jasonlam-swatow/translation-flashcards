@@ -5,7 +5,7 @@ const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' })
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      const rows = await sql`SELECT id, text, translation, raw_text AS "rawText", raw_translation AS "rawTranslation" FROM sentences ORDER BY id ASC`
+      const rows = await sql`SELECT id, text, translation, raw_text AS "rawText", raw_translation AS "rawTranslation" FROM sentences ORDER BY id DESC`
       res.status(200).json(rows)
     } else if (req.method === 'POST') {
       const { text, translation, rawText, rawTranslation } = req.body
