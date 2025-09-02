@@ -151,7 +151,7 @@ const current = computed(() => order.value[index.value])
       <div v-if="remaining.length" class="space-y-2">
         <label class="inline-flex items-center gap-2">
           <span>Number of sentences</span>
-          <textarea v-model.number="sessionSize" rows="3" class="input w-24"></textarea>
+          <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
         </label>
         <button class="btn" @click="startSession">Start</button>
       </div>
@@ -212,7 +212,7 @@ const current = computed(() => order.value[index.value])
           </svg>
         </button>
       </div>
-      <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative">
+      <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative whitespace-pre-line">
         <div
           ref="currentCard"
           class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
@@ -221,7 +221,7 @@ const current = computed(() => order.value[index.value])
           @animationend="handleAnimationEnd"
         >
           <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-if="current" v-html="current.translation"></span>
+            <span v-if="current" v-html="current.translation" class="text-gray-600"></span>
             <span v-else>No cards</span>
           </div>
           <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
@@ -235,7 +235,7 @@ const current = computed(() => order.value[index.value])
           :class="incomingClass"
         >
           <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-html="incoming.translation"></span>
+            <span v-html="incoming.translation" class="text-gray-600"></span>
           </div>
           <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
             <span v-html="incoming.text"></span>
