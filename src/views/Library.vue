@@ -87,7 +87,7 @@ function reset() {
       <textarea
         v-model="quick"
         placeholder="Quick add: one '==sentence==（translation）' per line"
-        class="input"
+        class="input resize-y"
       />
       <div class="flex items-center gap-2">
         <button type="submit" class="btn inline-flex items-center gap-1">
@@ -127,8 +127,8 @@ function reset() {
       </div>
     </form>
     <form v-if="showForm" @submit.prevent="save" class="space-y-2 mb-6">
-      <textarea v-model="form.text" placeholder="Sentence" class="input" />
-      <textarea v-model="form.translation" placeholder="Translation" class="input" />
+      <textarea v-model="form.text" placeholder="Sentence" class="input resize-y" />
+      <textarea v-model="form.translation" placeholder="Translation" class="input resize-y" />
       <div class="space-x-2">
         <button type="submit" class="btn inline-flex items-center gap-1">
           <svg
@@ -178,7 +178,7 @@ function reset() {
 
     <router-link
       to="/flashcards"
-      class="btn mt-6 inline-flex items-center gap-1"
+      class="btn mb-6 inline-flex items-center gap-1"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
