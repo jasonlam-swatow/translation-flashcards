@@ -158,7 +158,7 @@ const current = computed(() => order.value[index.value])
         Back to Library
       </router-link>
     </div>
-    <div v-else class="flex flex-col items-center">
+    <div v-else class="flex flex-col items-center w-full">
       <div
         v-if="showSentence && current"
         class="absolute top-4 right-4 flex flex-col space-y-2 z-20"
