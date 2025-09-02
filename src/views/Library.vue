@@ -258,7 +258,7 @@ function reset() {
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40"
       @click.self="closePreview"
     >
-      <div class="w-full max-w-md h-64 bg-white shadow rounded p-4 relative">
+      <div class="w-full max-w-md h-64 bg-white shadow rounded p-4 mx-5 relative">
         <button
           class="absolute top-2 right-2 text-gray-500"
           @click="closePreview"

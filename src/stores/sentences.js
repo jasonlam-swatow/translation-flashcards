@@ -20,9 +20,6 @@ export const useSentencesStore = defineStore('sentences', () => {
   async function load() {
     loading.value = true
     try {
-  async function load() {
-    loading.value = true
-    try {
       const res = await fetch('/api/sentences')
       if (!res.ok) return
       sentences.value = await res.json()
@@ -30,14 +27,7 @@ export const useSentencesStore = defineStore('sentences', () => {
       loading.value = false
     }
   }
-    } finally {
-      loading.value = false
-    }
-  }
 
-  async function add(text, translation) {
-    loading.value = true
-    try {
   async function add(text, translation) {
     loading.value = true
     try {
@@ -66,10 +56,6 @@ export const useSentencesStore = defineStore('sentences', () => {
         }
       }
       sentences.value.push(item)
-    } finally {
-      loading.value = false
-    }
-  }
     } finally {
       loading.value = false
     }
