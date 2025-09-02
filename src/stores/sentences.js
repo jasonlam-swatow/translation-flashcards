@@ -55,7 +55,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           rawTranslation,
         }
       }
-      sentences.value.push(item)
+      sentences.value.unshift(item)
     } finally {
       loading.value = false
     }
