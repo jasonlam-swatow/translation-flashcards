@@ -141,7 +141,7 @@ const current = computed(() => order.value[index.value])
       <div v-if="remaining.length" class="space-y-2">
         <label class="inline-flex items-center gap-2">
           <span>Number of sentences</span>
-          <textarea v-model.number="sessionSize" rows="3" class="input w-24"></textarea>
+          <input v-model.number="sessionSize" class="input w-24"></input>
         </label>
         <button class="btn" @click="startSession">Start</button>
       </div>
