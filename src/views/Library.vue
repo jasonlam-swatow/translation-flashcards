@@ -128,7 +128,7 @@ function reset() {
     </form>
     <form v-if="showForm" @submit.prevent="save" class="space-y-2 mb-6">
       <textarea v-model="form.text" placeholder="Sentence" class="input" />
-      <input v-model="form.translation" placeholder="Translation" class="input" />
+      <textarea v-model="form.translation" placeholder="Translation" class="input" />
       <div class="space-x-2">
         <button type="submit" class="btn inline-flex items-center gap-1">
           <svg
@@ -273,9 +273,9 @@ function reset() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         </button>
-        <div class="h-full flex flex-col justify-center text-xl text-center overflow-auto">
-          <div class="mb-4 text-gray-600" v-html="preview.translation"></div>
+        <div class="h-full flex flex-col justify-center text-xl overflow-auto whitespace-pre-line">
           <div v-html="preview.text"></div>
+          <div class="text-lg mb-4 text-gray-600" v-html="preview.translation"></div>
         </div>
       </div>
     </div>
