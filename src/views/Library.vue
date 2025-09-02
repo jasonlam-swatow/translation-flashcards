@@ -5,14 +5,12 @@ import { storeToRefs } from 'pinia'
 
 const store = useSentencesStore()
 const { sentences, loading } = storeToRefs(store)
-const { sentences, loading } = storeToRefs(store)
 
 const form = reactive({ text: '', translation: '' })
 const editingId = ref(null)
 const quick = ref('')
 const showForm = ref(false)
 const visibleCount = ref(20)
-const preview = ref(null)
 const preview = ref(null)
 
 const visibleSentences = computed(() =>
@@ -72,14 +70,6 @@ function reset() {
       await store.add(text.trim(), translation.trim())
     }
     quick.value = ''
-  }
-
-  function openPreview(item) {
-    preview.value = item
-  }
-
-  function closePreview() {
-    preview.value = null
   }
 
   function openPreview(item) {
@@ -193,10 +183,6 @@ function reset() {
         :key="item.id"
         class="bg-white shadow p-3 rounded flex items-start"
       >
-        <div
-          class="flex-1 mr-4 min-w-0 cursor-pointer"
-          @click="openPreview(item)"
-        >
         <div
           class="flex-1 mr-4 min-w-0 cursor-pointer"
           @click="openPreview(item)"

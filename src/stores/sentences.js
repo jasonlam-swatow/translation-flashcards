@@ -4,7 +4,6 @@ import { ref } from 'vue'
 export const useSentencesStore = defineStore('sentences', () => {
   const sentences = ref([])
   const loading = ref(false)
-  const loading = ref(false)
 
   function formatText(str) {
     return str
