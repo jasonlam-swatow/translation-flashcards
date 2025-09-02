@@ -189,7 +189,6 @@ function reset() {
         >
           <p class="font-semibold truncate" v-html="item.text"></p>
           <p class="text-gray-600 truncate" v-html="item.translation"></p>
-          <p class="text-gray-600 truncate" v-html="item.translation"></p>
         </div>
         <div class="flex-shrink-0 flex flex-col items-center space-y-2">
           <button class="text-blue-500" @click="edit(item)" aria-label="Edit">
@@ -276,7 +275,7 @@ function reset() {
           </svg>
         </button>
         <div class="h-full flex flex-col justify-center text-xl text-center overflow-auto">
-          <div class="mb-4" v-html="preview.translation"></div>
+          <div class="mb-4 text-gray-600" v-html="preview.translation"></div>
           <div v-html="preview.text"></div>
         </div>
       </div>
