@@ -52,7 +52,6 @@ function onScroll() {
 
   async function remove(id) {
     if (!confirm('Delete this sentence?')) return
-    if (!confirm('Delete this sentence?')) return
     await store.remove(id)
   }
 
