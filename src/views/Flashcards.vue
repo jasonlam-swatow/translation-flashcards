@@ -111,7 +111,7 @@ const current = computed(() => order.value[index.value])
 </script>
 
 <template>
-  <div class="h-screen flex flex-col items-center justify-center p-4 relative">
+  <div class="flex-1 flex flex-col items-center justify-center p-4 relative">
     <div
       v-if="showSentence && current"
       class="absolute top-4 right-4 flex flex-col space-y-2 z-20"

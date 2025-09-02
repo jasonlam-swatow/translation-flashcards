@@ -81,7 +81,7 @@ function reset() {
 </script>
 
 <template>
-  <div class="p-4 max-w-2xl mx-auto">
+  <div class="p-4 w-screen mx-auto">
     <h1 class="text-2xl font-bold mb-4">Sentence Library</h1>
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
       <textarea
@@ -275,7 +275,7 @@ function reset() {
         </button>
         <div class="h-full flex flex-col justify-center text-xl overflow-auto whitespace-pre-line">
           <div v-html="preview.text"></div>
-          <div class="text-lg mb-4 text-gray-600" v-html="preview.translation"></div>
+          <div class="text-lg mt-4 text-gray-600" v-html="preview.translation"></div>
         </div>
       </div>
     </div>
