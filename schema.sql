@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS sentences (
   text TEXT NOT NULL,
   translation TEXT NOT NULL,
   raw_text TEXT NOT NULL,
-  raw_translation TEXT NOT NULL
+  raw_translation TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
