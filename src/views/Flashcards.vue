@@ -19,6 +19,22 @@ const editing = ref(false)
 const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
+<<<<<<< HEAD
+const learned = ref({})
+const recentLearned = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  return sentences.value.filter(s => {
+    const t = learned.value[s.id]
+    if (!t) return false
+    const last = new Date(t)
+    return last >= yesterday
+  })
+})
+||||||| 8b72e2f
+=======
 const recentSentences = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -30,6 +46,7 @@ const recentSentences = computed(() => {
     return created >= yesterday
   })
 })
+>>>>>>> main
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -40,6 +57,8 @@ function shuffle(arr) {
 }
 
 onMounted(async () => {
+  const stored = localStorage.getItem('learnedSentences')
+  if (stored) learned.value = JSON.parse(stored)
   await store.load()
   remaining.value = [...sentences.value]
 })
@@ -55,6 +74,18 @@ function startSession() {
   showSentence.value = false
 }
 
+<<<<<<< HEAD
+function startRevision() {
+  if (!recentLearned.value.length) return
+  const size = Math.min(sessionSize.value, recentLearned.value.length)
+  const shuffled = shuffle([...recentLearned.value])
+  order.value = shuffled.slice(0, size)
+  index.value = 0
+  showSentence.value = false
+}
+
+||||||| 8b72e2f
+=======
 function startRevision() {
   if (!recentSentences.value.length) return
   const size = Math.min(sessionSize.value, recentSentences.value.length)
@@ -64,6 +95,7 @@ function startRevision() {
   showSentence.value = false
 }
 
+>>>>>>> main
 function nextCard() {
   if (!order.value.length) return
   if (index.value < order.value.length - 1) {
@@ -83,6 +115,10 @@ function prevCard() {
 }
 function flip() {
   showSentence.value = !showSentence.value
+  if (showSentence.value && current.value) {
+    learned.value[current.value.id] = new Date().toISOString()
+    localStorage.setItem('learnedSentences', JSON.stringify(learned.value))
+  }
 }
 
 function startEdit() {
@@ -176,9 +212,15 @@ const current = computed(() => order.value[index.value])
           <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
         </label>
         <div class="flex justify-center gap-2">
-          <button v-if="remaining.length" class="btn" @click="startSession">Start</button>
           <button
-            v-if="recentSentences.length"
+            v-if="remaining.length"
+            class="btn"
+            @click="startSession"
+          >
+            Start
+          </button>
+          <button
+            v-if="recentLearned.length"
             class="btn"
             @click="startRevision"
           >

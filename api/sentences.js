@@ -2,10 +2,12 @@ import postgres from 'postgres'
 
 const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' })
 
+await sql`ALTER TABLE IF EXISTS sentences ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      const rows = await sql`SELECT id, text, translation, raw_text AS "rawText", raw_translation AS "rawTranslation", created_at AS "createdAt" FROM sentences ORDER BY id DESC`
+      const rows = await sql`SELECT id, text, translation, raw_text AS "rawText", raw_translation AS "rawTranslation", created_at AS "createdAt" FROM sentences ORDER BY created_at DESC`
       res.status(200).json(rows)
     } else if (req.method === 'POST') {
       const { text, translation, rawText, rawTranslation } = req.body
