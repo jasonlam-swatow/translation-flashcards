@@ -19,6 +19,19 @@ const editing = ref(false)
 const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
+const learned = ref({})
+const recentLearned = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  return sentences.value.filter(s => {
+    const t = learned.value[s.id]
+    if (!t) return false
+    const last = new Date(t)
+    return last >= yesterday
+  })
+})
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -29,6 +42,8 @@ function shuffle(arr) {
 }
 
 onMounted(async () => {
+  const stored = localStorage.getItem('learnedSentences')
+  if (stored) learned.value = JSON.parse(stored)
   await store.load()
   remaining.value = [...sentences.value]
 })
@@ -40,6 +55,15 @@ function startSession() {
   order.value = shuffled.slice(0, size)
   const ids = new Set(order.value.map(s => s.id))
   remaining.value = remaining.value.filter(s => !ids.has(s.id))
+  index.value = 0
+  showSentence.value = false
+}
+
+function startRevision() {
+  if (!recentLearned.value.length) return
+  const size = Math.min(sessionSize.value, recentLearned.value.length)
+  const shuffled = shuffle([...recentLearned.value])
+  order.value = shuffled.slice(0, size)
   index.value = 0
   showSentence.value = false
 }
@@ -63,6 +87,10 @@ function prevCard() {
 }
 function flip() {
   showSentence.value = !showSentence.value
+  if (showSentence.value && current.value) {
+    learned.value[current.value.id] = new Date().toISOString()
+    localStorage.setItem('learnedSentences', JSON.stringify(learned.value))
+  }
 }
 
 function startEdit() {
@@ -150,14 +178,23 @@ const current = computed(() => order.value[index.value])
 <template>
   <div class="flex-1 flex flex-col items-center justify-center p-4 relative">
     <div v-if="!order.length" class="space-y-4 text-center">
-      <div v-if="remaining.length" class="space-y-2">
+      <div class="space-y-2">
         <label class="inline-flex items-center gap-2">
           <span>Number of sentences</span>
           <input type="number" v-model.number="sessionSize" min="1" class="input w-24" />
         </label>
-        <button class="btn" @click="startSession">Start</button>
+        <div class="flex justify-center gap-2">
+          <button v-if="remaining.length" class="btn" @click="startSession">Start</button>
+          <button
+            v-if="recentLearned.length"
+            class="btn"
+            @click="startRevision"
+          >
+            Revise
+          </button>
+        </div>
       </div>
-      <p v-else class="text-gray-500">No unseen sentences left.</p>
+      <p v-if="!remaining.length" class="text-gray-500">No unseen sentences left.</p>
       <router-link to="/library" class="text-blue-500 inline-flex items-center gap-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
