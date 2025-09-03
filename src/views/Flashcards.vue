@@ -19,7 +19,6 @@ const editing = ref(false)
 const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
-<<<<<<< HEAD
 const learned = ref({})
 const recentLearned = computed(() => {
   const today = new Date()
@@ -33,20 +32,6 @@ const recentLearned = computed(() => {
     return last >= yesterday
   })
 })
-||||||| 8b72e2f
-=======
-const recentSentences = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  return sentences.value.filter(s => {
-    if (!s.createdAt) return false
-    const created = new Date(s.createdAt)
-    return created >= yesterday
-  })
-})
->>>>>>> main
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -74,7 +59,6 @@ function startSession() {
   showSentence.value = false
 }
 
-<<<<<<< HEAD
 function startRevision() {
   if (!recentLearned.value.length) return
   const size = Math.min(sessionSize.value, recentLearned.value.length)
@@ -84,18 +68,6 @@ function startRevision() {
   showSentence.value = false
 }
 
-||||||| 8b72e2f
-=======
-function startRevision() {
-  if (!recentSentences.value.length) return
-  const size = Math.min(sessionSize.value, recentSentences.value.length)
-  const shuffled = shuffle([...recentSentences.value])
-  order.value = shuffled.slice(0, size)
-  index.value = 0
-  showSentence.value = false
-}
-
->>>>>>> main
 function nextCard() {
   if (!order.value.length) return
   if (index.value < order.value.length - 1) {
