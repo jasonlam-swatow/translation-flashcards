@@ -129,11 +129,13 @@ function handleAnimationEnd(e) {
   if (action === 'next') nextCard()
   else if (action === 'prev') prevCard()
   incoming.value = null
-  if (el) {
-    // Force reflow before restoring transition to avoid Safari double animations
-    void el.offsetWidth
-    el.style.transition = ''
-  }
+  requestAnimationFrame(() => {
+    const newEl = currentCard.value
+    if (newEl) {
+      newEl.style.transition = ''
+      newEl.style.animation = ''
+    }
+  })
 }
 
 useSwipe(cardRef, {
@@ -215,6 +217,7 @@ const current = computed(() => order.value[index.value])
       <div ref="cardRef" class="card-wrapper w-full max-w-md h-64 relative whitespace-pre-line">
         <div
           ref="currentCard"
+          :key="current?.id"
           class="card current absolute inset-0 w-full h-full bg-white shadow rounded cursor-pointer select-none z-10"
           :class="[swipeClass, { flipped: showSentence }]"
           @click="flip"
@@ -231,6 +234,7 @@ const current = computed(() => order.value[index.value])
         </div>
         <div
           v-if="incoming"
+          :key="incoming?.id"
           class="card incoming absolute inset-0 w-full h-full bg-white shadow rounded select-none"
           :class="incomingClass"
         >
