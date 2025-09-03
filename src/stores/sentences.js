@@ -53,6 +53,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           translation: formatText(rawTranslation),
           rawText,
           rawTranslation,
+          createdAt: new Date().toISOString(),
         }
       }
       sentences.value.unshift(item)
