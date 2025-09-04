@@ -12,16 +12,27 @@ const quick = ref('')
 const showForm = ref(false)
 const visibleCount = ref(20)
 const preview = ref(null)
+const filter = ref('all')
+
+const totalCount = computed(() => sentences.value.length)
+const learnedCount = computed(() =>
+  sentences.value.filter(s => s.learnedAt).length
+)
+
+const filteredSentences = computed(() => {
+  if (filter.value === 'learned') return sentences.value.filter(s => s.learnedAt)
+  return sentences.value
+})
 
 const visibleSentences = computed(() =>
-  sentences.value.slice(0, visibleCount.value)
+  filteredSentences.value.slice(0, visibleCount.value)
 )
 
 function onScroll() {
   if (
     window.innerHeight + window.scrollY >=
     document.body.offsetHeight - 100 &&
-    visibleCount.value < sentences.value.length
+    visibleCount.value < filteredSentences.value.length
   ) {
     visibleCount.value += 20
   }
@@ -83,6 +94,22 @@ function reset() {
 <template>
   <div class="p-4 w-screen mx-auto">
     <h1 class="text-2xl font-bold mb-4">Sentence Library</h1>
+    <div class="mb-4 flex gap-4">
+      <button
+        class="text-blue-500 underline"
+        :class="{ 'font-bold': filter === 'all' }"
+        @click="() => { filter = 'all'; visibleCount = 20 }"
+      >
+        Total {{ totalCount }}
+      </button>
+      <button
+        class="text-blue-500 underline"
+        :class="{ 'font-bold': filter === 'learned' }"
+        @click="() => { filter = 'learned'; visibleCount = 20 }"
+      >
+        Learned {{ learnedCount }}
+      </button>
+    </div>
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
       <textarea
         v-model="quick"

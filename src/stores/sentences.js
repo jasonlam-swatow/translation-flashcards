@@ -54,6 +54,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           rawText,
           rawTranslation,
           createdAt: new Date().toISOString(),
+          learnedAt: null,
         }
       }
       sentences.value.unshift(item)
@@ -94,14 +95,23 @@ export const useSentencesStore = defineStore('sentences', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function markLearned(id) {
     loading.value = true
     try {
-      await fetch(`/api/sentences?id=${id}`, { method: 'DELETE' })
-      sentences.value = sentences.value.filter(s => s.id !== id)
+      const res = await fetch('/api/learned', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      const item = await res.json()
+      const s = sentences.value.find(s => s.id === id)
+      if (s) s.learnedAt = item.learnedAt
     } finally {
       loading.value = false
     }
   }
 
-  return { sentences, load, add, update, remove, loading }
+  return { sentences, load, add, update, remove, markLearned, loading }
 })

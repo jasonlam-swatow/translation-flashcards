@@ -19,16 +19,15 @@ const editing = ref(false)
 const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
-const learned = ref({})
+const typed = ref('')
 const recentLearned = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
   return sentences.value.filter(s => {
-    const t = learned.value[s.id]
-    if (!t) return false
-    const last = new Date(t)
+    if (!s.learnedAt) return false
+    const last = new Date(s.learnedAt)
     return last >= yesterday
   })
 })
@@ -42,10 +41,8 @@ function shuffle(arr) {
 }
 
 onMounted(async () => {
-  const stored = localStorage.getItem('learnedSentences')
-  if (stored) learned.value = JSON.parse(stored)
   await store.load()
-  remaining.value = [...sentences.value]
+  remaining.value = sentences.value.filter(s => !s.learnedAt)
 })
 
 function startSession() {
@@ -57,6 +54,7 @@ function startSession() {
   remaining.value = remaining.value.filter(s => !ids.has(s.id))
   index.value = 0
   showSentence.value = false
+  typed.value = ''
 }
 
 function startRevision() {
@@ -66,6 +64,7 @@ function startRevision() {
   order.value = shuffled.slice(0, size)
   index.value = 0
   showSentence.value = false
+  typed.value = ''
 }
 
 function nextCard() {
@@ -73,23 +72,25 @@ function nextCard() {
   if (index.value < order.value.length - 1) {
     index.value++
     showSentence.value = false
+    typed.value = ''
   } else {
     order.value = []
     index.value = 0
     showSentence.value = false
+    typed.value = ''
   }
 }
 function prevCard() {
   if (index.value > 0) {
     index.value--
     showSentence.value = false
+    typed.value = ''
   }
 }
-function flip() {
+async function flip() {
   showSentence.value = !showSentence.value
-  if (showSentence.value && current.value) {
-    learned.value[current.value.id] = new Date().toISOString()
-    localStorage.setItem('learnedSentences', JSON.stringify(learned.value))
+  if (showSentence.value && current.value && !current.value.learnedAt) {
+    await store.markLearned(current.value.id)
   }
 }
 
@@ -186,16 +187,44 @@ const current = computed(() => order.value[index.value])
         <div class="flex justify-center gap-2">
           <button
             v-if="remaining.length"
-            class="btn"
+            class="btn inline-flex items-center gap-1"
             @click="startSession"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653Z"
+              />
+            </svg>
             Start
           </button>
           <button
             v-if="recentLearned.length"
-            class="btn"
+            class="btn inline-flex items-center gap-1"
             @click="startRevision"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 6v6h4.5M12 21a9 9 0 100-18 9 9 0 000 18z"
+              />
+            </svg>
             Revise
           </button>
         </div>
@@ -266,12 +295,12 @@ const current = computed(() => order.value[index.value])
           @click="flip"
           @animationend="handleAnimationEnd"
         >
-          <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-if="current" v-html="current.translation" class="text-gray-600"></span>
+          <div class="face front flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-if="current" v-html="current.translation" class="text-gray-600 text-left"></span>
             <span v-else>No cards</span>
           </div>
-          <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-if="current" v-html="current.text"></span>
+          <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-if="current" v-html="current.text" class="text-left"></span>
             <span v-else>No cards</span>
           </div>
         </div>
@@ -281,14 +310,21 @@ const current = computed(() => order.value[index.value])
           class="card incoming absolute inset-0 w-full h-full bg-white shadow rounded select-none"
           :class="incomingClass"
         >
-          <div class="face front flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-html="incoming.translation" class="text-gray-600"></span>
+          <div class="face front flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-html="incoming.translation" class="text-gray-600 text-left"></span>
           </div>
-          <div class="face back flex items-center justify-center text-xl p-4 overflow-auto text-center">
-            <span v-html="incoming.text"></span>
+          <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-html="incoming.text" class="text-left"></span>
           </div>
         </div>
       </div>
+      <input
+        v-if="order.length"
+        v-model="typed"
+        type="text"
+        class="w-full max-w-md mt-4 border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
+        placeholder="Type the sentence"
+      />
       <div class="flex gap-4 mt-4">
         <button class="btn inline-flex items-center gap-1" @click="() => handleSwipe('right')">
           <svg
