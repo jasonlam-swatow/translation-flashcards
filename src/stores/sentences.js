@@ -4,6 +4,7 @@ import { ref } from 'vue'
 export const useSentencesStore = defineStore('sentences', () => {
   const sentences = ref([])
   const loading = ref(false)
+  const revised = ref(new Set())
 
   function formatText(str) {
     return str
@@ -55,6 +56,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           rawTranslation,
           createdAt: new Date().toISOString(),
           learnedAt: null,
+          starred: false,
         }
       }
       sentences.value.unshift(item)
@@ -113,5 +115,32 @@ export const useSentencesStore = defineStore('sentences', () => {
     }
   }
 
-  return { sentences, load, add, update, remove, markLearned, loading }
+  async function toggleStar(id) {
+    loading.value = true
+    try {
+      const s = sentences.value.find(s => s.id === id)
+      if (!s) return
+      const res = await fetch('/api/starred', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, starred: !s.starred })
+      })
+      const item = await res.json()
+      s.starred = item.starred
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function markRevised(id) {
+    const set = new Set(revised.value)
+    set.add(id)
+    revised.value = set
+  }
+
+  function resetRevised() {
+    revised.value = new Set()
+  }
+
+  return { sentences, load, add, update, remove, markLearned, toggleStar, revised, markRevised, resetRevised, loading }
 })

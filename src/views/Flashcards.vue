@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 import { useSwipe } from '@vueuse/core'
 
 const store = useSentencesStore()
-const { loading, sentences } = storeToRefs(store)
+const { loading, sentences, revised } = storeToRefs(store)
 const order = ref([])
 const index = ref(0)
 const showSentence = ref(false)
@@ -20,17 +20,38 @@ const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
 const typed = ref('')
-const recentLearned = computed(() => {
+const isRevision = ref(false)
+
+function getRevisionList() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
-  return sentences.value.filter(s => {
-    if (!s.learnedAt) return false
-    const last = new Date(s.learnedAt)
-    return last >= yesterday
-  })
-})
+  const twoDaysAgo = new Date(today)
+  twoDaysAgo.setDate(today.getDate() - 2)
+  const candidates = sentences.value.filter(s => s.learnedAt && !revised.value.has(s.id))
+  const starred = candidates.filter(s => s.starred)
+  const day1 = candidates.filter(
+    s => !s.starred && new Date(s.learnedAt) >= yesterday
+  )
+  const day2 = candidates.filter(
+    s =>
+      !s.starred &&
+      new Date(s.learnedAt) >= twoDaysAgo &&
+      new Date(s.learnedAt) < yesterday
+  )
+  const older = candidates.filter(
+    s => !s.starred && new Date(s.learnedAt) < twoDaysAgo
+  )
+  return [
+    ...shuffle(starred),
+    ...shuffle(day1),
+    ...shuffle(day2),
+    ...shuffle(older),
+  ]
+}
+
+const revisionCandidates = computed(() => getRevisionList())
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -55,16 +76,18 @@ function startSession() {
   index.value = 0
   showSentence.value = false
   typed.value = ''
+  isRevision.value = false
 }
 
 function startRevision() {
-  if (!recentLearned.value.length) return
-  const size = Math.min(sessionSize.value, recentLearned.value.length)
-  const shuffled = shuffle([...recentLearned.value])
-  order.value = shuffled.slice(0, size)
+  const list = getRevisionList()
+  if (!list.length) return
+  const size = Math.min(sessionSize.value, list.length)
+  order.value = list.slice(0, size)
   index.value = 0
   showSentence.value = false
   typed.value = ''
+  isRevision.value = true
 }
 
 function nextCard() {
@@ -78,6 +101,7 @@ function nextCard() {
     index.value = 0
     showSentence.value = false
     typed.value = ''
+    isRevision.value = false
   }
 }
 function prevCard() {
@@ -91,6 +115,9 @@ async function flip() {
   showSentence.value = !showSentence.value
   if (showSentence.value && current.value && !current.value.learnedAt) {
     await store.markLearned(current.value.id)
+  }
+  if (showSentence.value && current.value && isRevision.value) {
+    store.markRevised(current.value.id)
   }
 }
 
@@ -124,6 +151,11 @@ async function removeCurrent() {
     index.value = 0
   }
   showSentence.value = false
+}
+
+async function toggleStarCurrent() {
+  if (!current.value) return
+  await store.toggleStar(current.value.id)
 }
 
 function handleSwipe(dir) {
@@ -207,7 +239,7 @@ const current = computed(() => order.value[index.value])
             Start
           </button>
           <button
-            v-if="recentLearned.length"
+            v-if="revisionCandidates.length"
             class="btn inline-flex items-center gap-1"
             @click="startRevision"
           >
@@ -249,6 +281,38 @@ const current = computed(() => order.value[index.value])
         v-if="showSentence && current"
         class="absolute top-4 right-4 flex flex-col space-y-2 z-20"
       >
+        <button
+          class="text-yellow-500"
+          @click.stop="toggleStarCurrent"
+          aria-label="Star"
+        >
+          <svg
+            v-if="current.starred"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              d="M10.7881 3.21068C11.2364 2.13274 12.7635 2.13273 13.2118 3.21068L15.2938 8.2164L20.6979 8.64964C21.8616 8.74293 22.3335 10.1952 21.4469 10.9547L17.3295 14.4817L18.5874 19.7551C18.8583 20.8908 17.6229 21.7883 16.6266 21.1798L11.9999 18.3538L7.37329 21.1798C6.37697 21.7883 5.14158 20.8908 5.41246 19.7551L6.67038 14.4817L2.55303 10.9547C1.66639 10.1952 2.13826 8.74293 3.302 8.64964L8.70609 8.2164L10.7881 3.21068Z"
+            />
+          </svg>
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M11.4806 3.4987C11.6728 3.03673 12.3272 3.03673 12.5193 3.4987L14.6453 8.61016C14.7263 8.80492 14.9095 8.93799 15.1197 8.95485L20.638 9.39724C21.1367 9.43722 21.339 10.0596 20.959 10.3851L16.7546 13.9866C16.5945 14.1238 16.5245 14.3391 16.5734 14.5443L17.8579 19.9292C17.974 20.4159 17.4446 20.8005 17.0176 20.5397L12.2932 17.6541C12.1132 17.5441 11.8868 17.5441 11.7068 17.6541L6.98238 20.5397C6.55539 20.8005 6.02594 20.4159 6.14203 19.9292L7.42652 14.5443C7.47546 14.3391 7.4055 14.1238 7.24531 13.9866L3.04099 10.3851C2.661 10.0596 2.86323 9.43722 3.36197 9.39724L8.88022 8.95485C9.09048 8.93799 9.27363 8.80492 9.35464 8.61016L11.4806 3.4987Z"
+            />
+          </svg>
+        </button>
         <button class="text-blue-500" @click.stop="startEdit" aria-label="Edit">
           <svg
             xmlns="http://www.w3.org/2000/svg"
