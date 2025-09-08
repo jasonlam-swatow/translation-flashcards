@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS sentences (
   raw_text TEXT NOT NULL,
   raw_translation TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  learned_at TIMESTAMPTZ
+  learned_at TIMESTAMPTZ,
+  starred BOOLEAN NOT NULL DEFAULT FALSE
 );
