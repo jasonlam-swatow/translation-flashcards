@@ -382,11 +382,10 @@ const current = computed(() => order.value[index.value])
           </div>
         </div>
       </div>
-      <input
+      <textarea
         v-if="order.length"
         v-model="typed"
-        type="text"
-        class="w-full max-w-md mt-4 border-0 border-b border-gray-400 focus:border-blue-500 focus:outline-none"
+        class="w-full max-w-md mt-4 border-0 border-b border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none"
         placeholder="Type the sentence"
       />
       <div class="flex gap-4 mt-4">
