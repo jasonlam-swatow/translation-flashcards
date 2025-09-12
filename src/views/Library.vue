@@ -124,12 +124,6 @@ function reset() {
         Learned {{ learnedCount }}
       </button>
     </div>
-    <input
-      v-model="keyword"
-      placeholder="Filter by keyword"
-      class="input mb-4"
-      @input="visibleCount = 20"
-    />
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
       <textarea
         v-model="quick"
@@ -245,6 +239,13 @@ function reset() {
       Start Flashcards
     </router-link>
 
+    <input
+      v-model="keyword"
+      placeholder="Filter by keyword"
+      class="input mb-4"
+      @input="visibleCount = 20"
+    />
+
     <ul class="space-y-2">
       <li
         v-for="item in visibleSentences"
@@ -254,7 +255,7 @@ function reset() {
         <div
           v-if="filter === 'all'"
           class="absolute top-0 left-0 w-0 h-0 border-t-8 border-r-8 border-r-transparent"
-          :class="item.learnedAt ? 'border-t-green-500' : 'border-t-gray-300'"
+          :class="item.learnedAt ? 'border-t-transparent' : 'border-t-blue-500'"
         ></div>
         <div
           class="flex-1 mr-4 min-w-0 cursor-pointer"
