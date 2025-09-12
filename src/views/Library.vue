@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
 import { storeToRefs } from 'pinia'
 
@@ -13,6 +13,7 @@ const showForm = ref(false)
 const visibleCount = ref(20)
 const preview = ref(null)
 const filter = ref('all')
+const keyword = ref('')
 
 const totalCount = computed(() => sentences.value.length)
 const learnedCount = computed(() =>
@@ -20,8 +21,17 @@ const learnedCount = computed(() =>
 )
 
 const filteredSentences = computed(() => {
-  if (filter.value === 'learned') return sentences.value.filter(s => s.learnedAt)
-  return sentences.value
+  let list = sentences.value
+  if (filter.value === 'learned') list = list.filter(s => s.learnedAt)
+  if (keyword.value.trim()) {
+    const k = keyword.value.toLowerCase()
+    list = list.filter(
+      s =>
+        s.rawText.toLowerCase().includes(k) ||
+        s.rawTranslation.toLowerCase().includes(k)
+    )
+  }
+  return list
 })
 
 const visibleSentences = computed(() =>
@@ -43,6 +53,10 @@ function onScroll() {
     window.addEventListener('scroll', onScroll)
   })
   onUnmounted(() => window.removeEventListener('scroll', onScroll))
+
+watch(keyword, () => {
+  visibleCount.value = 20
+})
 
   async function save() {
     if (!form.text.trim() || !form.translation.trim()) return
@@ -110,6 +124,12 @@ function reset() {
         Learned {{ learnedCount }}
       </button>
     </div>
+    <input
+      v-model="keyword"
+      placeholder="Filter by keyword"
+      class="input mb-4"
+      @input="visibleCount = 20"
+    />
     <form @submit.prevent="quickAdd" class="space-y-2 mb-6">
       <textarea
         v-model="quick"
@@ -229,8 +249,13 @@ function reset() {
       <li
         v-for="item in visibleSentences"
         :key="item.id"
-        class="bg-white shadow p-3 rounded flex items-start"
+        class="relative bg-white shadow p-3 rounded flex items-start"
       >
+        <div
+          v-if="filter === 'all'"
+          class="absolute top-0 left-0 w-0 h-0 border-t-8 border-r-8 border-r-transparent"
+          :class="item.learnedAt ? 'border-t-green-500' : 'border-t-gray-300'"
+        ></div>
         <div
           class="flex-1 mr-4 min-w-0 cursor-pointer"
           @click="openPreview(item)"
