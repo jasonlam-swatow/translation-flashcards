@@ -532,7 +532,7 @@ watch(
             <span v-else>No cards</span>
 
             <div
-              v-if="current && !showSentence"
+              v-if="current && showSentence"
               class="mt-4 absolute bottom-4" style="width: calc(100% - 2rem)"
               @click.stop
             >
