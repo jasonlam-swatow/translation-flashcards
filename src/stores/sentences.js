@@ -57,6 +57,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           createdAt: new Date().toISOString(),
           learnedAt: null,
           starred: false,
+          note: '',
         }
       }
       sentences.value.unshift(item)
@@ -86,6 +87,25 @@ export const useSentencesStore = defineStore('sentences', () => {
       if (idx !== -1) Object.assign(sentences.value[idx], item)
     } finally {
       loading.value = false
+    }
+  }
+
+  async function updateNote(id, note) {
+    try {
+      const res = await fetch('/api/notes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, note }),
+      })
+      if (!res.ok) {
+        throw new Error('Failed to update note')
+      }
+      const item = await res.json()
+      const target = sentences.value.find(s => s.id === id)
+      if (target) target.note = item.note
+    } catch (err) {
+      console.error(err)
+      throw err
     }
   }
 
@@ -142,5 +162,18 @@ export const useSentencesStore = defineStore('sentences', () => {
     revised.value = new Set()
   }
 
-  return { sentences, load, add, update, remove, markLearned, toggleStar, revised, markRevised, resetRevised, loading }
+  return {
+    sentences,
+    load,
+    add,
+    update,
+    remove,
+    markLearned,
+    toggleStar,
+    revised,
+    markRevised,
+    resetRevised,
+    loading,
+    updateNote,
+  }
 })

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
 import { storeToRefs } from 'pinia'
 import { useSwipe } from '@vueuse/core'
@@ -20,6 +20,8 @@ const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
 const typed = ref('')
+const noteDraft = ref('')
+const noteSaving = ref(false)
 const isRevision = ref(false)
 
 const revisionWeights = [4, 3, 2, 1]
@@ -287,6 +289,21 @@ async function toggleStarCurrent() {
   await store.toggleStar(current.value.id)
 }
 
+async function handleNoteBlur() {
+  if (!current.value || noteSaving.value) return
+  const sentence = current.value
+  const value = noteDraft.value ?? ''
+  if ((sentence.note ?? '') === value) return
+  noteSaving.value = true
+  try {
+    await store.updateNote(sentence.id, value)
+  } catch (err) {
+    noteDraft.value = sentence.note ?? ''
+  } finally {
+    noteSaving.value = false
+  }
+}
+
 function handleSwipe(dir) {
   if (swipeClass.value || !order.value.length) return
   if (dir === 'left') {
@@ -335,6 +352,24 @@ useSwipe(cardRef, {
 })
 
 const current = computed(() => order.value[index.value])
+
+watch(
+  () => current.value?.id,
+  () => {
+    noteDraft.value = current.value?.note ?? ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => current.value?.note,
+  newValue => {
+    const normalized = newValue ?? ''
+    if (normalized !== noteDraft.value) {
+      noteDraft.value = normalized
+    }
+  }
+)
 </script>
 
 <template>
@@ -488,9 +523,42 @@ const current = computed(() => order.value[index.value])
           @click="flip"
           @animationend="handleAnimationEnd"
         >
-          <div class="face front flex items-center justify-start text-xl p-4 overflow-auto">
-            <span v-if="current" v-html="current.translation" class="text-gray-600 text-left"></span>
-            <span v-else>No cards</span>
+          <div class="face front flex flex-col text-xl p-4">
+            <div class="flex-1 overflow-auto text-left text-gray-600">
+              <span v-if="current" v-html="current.translation" class="block"></span>
+              <span v-else>No cards</span>
+            </div>
+            <div
+              v-if="current && !showSentence"
+              class="mt-4"
+              @click.stop
+            >
+              <div class="relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-4 h-4 absolute left-0 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.02M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                  />
+                </svg>
+                <input
+                  v-model="noteDraft"
+                  type="text"
+                  :disabled="noteSaving"
+                  class="w-full pl-6 border-0 border-b border-gray-300 bg-transparent text-sm text-gray-700 focus:border-blue-500 focus:outline-none py-1"
+                  placeholder="Add a note"
+                  @blur="handleNoteBlur"
+                />
+              </div>
+            </div>
           </div>
           <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
             <span v-if="current" v-html="current.text" class="text-left"></span>
