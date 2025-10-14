@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useSentencesStore } from '../stores/sentences'
 import { storeToRefs } from 'pinia'
 import { useSwipe } from '@vueuse/core'
@@ -20,9 +20,13 @@ const editForm = reactive({ text: '', translation: '' })
 const sessionSize = ref(10)
 const remaining = ref([])
 const typed = ref('')
+const noteDraft = ref('')
+const noteSaving = ref(false)
 const isRevision = ref(false)
 
-function getRevisionList() {
+const revisionWeights = [4, 3, 2, 1]
+
+function buildRevisionGroups() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const yesterday = new Date(today)
@@ -43,15 +47,143 @@ function getRevisionList() {
   const older = candidates.filter(
     s => !s.starred && new Date(s.learnedAt) < twoDaysAgo
   )
-  return [
-    ...shuffle(starred),
-    ...shuffle(day1),
-    ...shuffle(day2),
-    ...shuffle(older),
-  ]
+  return [starred, day1, day2, older].map((items, index) => ({
+    items: shuffle([...items]),
+    weight: revisionWeights[index],
+    index,
+  }))
 }
 
-const revisionCandidates = computed(() => getRevisionList())
+function getRevisionCandidates() {
+  return buildRevisionGroups().flatMap(group => group.items)
+}
+
+function buildRevisionSession(limit) {
+  const groups = buildRevisionGroups()
+  const totalAvailable = groups.reduce((sum, group) => sum + group.items.length, 0)
+  const size = Math.min(limit, totalAvailable)
+  if (!size) return []
+
+  const active = groups
+    .map(group => ({
+      index: group.index,
+      weight: group.weight,
+      items: [...group.items],
+    }))
+    .filter(group => group.items.length)
+
+  if (!active.length) return []
+
+  let considered = [...active]
+  while (considered.length > 1) {
+    const totalWeight = considered.reduce((sum, group) => sum + group.weight, 0)
+    const removable = considered.filter(group => (size * group.weight) / totalWeight < 1)
+    if (!removable.length) break
+    if (removable.length === considered.length) {
+      const highestPriority = removable.reduce((best, group) =>
+        group.index < best.index ? group : best
+      )
+      considered = [highestPriority]
+      break
+    }
+    const remainingGroups = considered.filter(group => !removable.includes(group))
+    if (!remainingGroups.length) break
+    considered = remainingGroups
+  }
+
+  const included = new Set(considered.map(group => group.index))
+  const allocations = active.map(group => ({
+    index: group.index,
+    weight: group.weight,
+    items: group.items,
+    count: 0,
+    fraction: 0,
+  }))
+
+  const weightedTotal = considered.reduce((sum, group) => sum + group.weight, 0)
+  let allocated = 0
+  for (const group of allocations) {
+    if (!included.has(group.index)) continue
+    const reference = considered.find(item => item.index === group.index)
+    const raw = (size * reference.weight) / weightedTotal
+    const base = Math.min(Math.floor(raw), group.items.length)
+    group.count = base
+    group.fraction = raw - Math.floor(raw)
+    allocated += base
+  }
+
+  let remaining = size - allocated
+
+  if (remaining > 0) {
+    const fractionalOrder = allocations
+      .filter(group => included.has(group.index) && group.count < group.items.length)
+      .sort((a, b) => {
+        if (b.fraction === a.fraction) return a.index - b.index
+        return b.fraction - a.fraction
+      })
+    for (const group of fractionalOrder) {
+      if (!remaining) break
+      const available = group.items.length - group.count
+      if (available <= 0) continue
+      const take = Math.min(available, remaining)
+      group.count += take
+      remaining -= take
+    }
+  }
+
+  if (remaining > 0) {
+    const priorityOrder = allocations
+      .filter(group => included.has(group.index) && group.count < group.items.length)
+      .sort((a, b) => a.index - b.index)
+    while (remaining > 0 && priorityOrder.length) {
+      for (const group of priorityOrder) {
+        if (!remaining) break
+        if (group.count >= group.items.length) continue
+        group.count++
+        remaining--
+      }
+    }
+  }
+
+  const activeStates = allocations
+    .filter(group => group.count > 0)
+    .map(group => ({
+      index: group.index,
+      weight: group.weight,
+      queue: group.items.slice(0, group.count),
+      remaining: group.count,
+      current: 0,
+    }))
+
+  if (!activeStates.length) return []
+
+  const result = []
+  while (activeStates.length) {
+    const totalWeight = activeStates.reduce((sum, state) => sum + state.weight, 0)
+    for (const state of activeStates) {
+      state.current += state.weight
+    }
+    let selected = activeStates[0]
+    for (const state of activeStates) {
+      if (state.current > selected.current) {
+        selected = state
+      } else if (state.current === selected.current && state.index < selected.index) {
+        selected = state
+      }
+    }
+    result.push(selected.queue.shift())
+    selected.remaining--
+    selected.current -= totalWeight
+    if (selected.remaining <= 0 || !selected.queue.length) {
+      const idx = activeStates.findIndex(state => state.index === selected.index)
+      activeStates.splice(idx, 1)
+    }
+  }
+
+  return result
+}
+
+const revisionCandidates = computed(() => getRevisionCandidates())
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -80,10 +212,9 @@ function startSession() {
 }
 
 function startRevision() {
-  const list = getRevisionList()
+  const list = buildRevisionSession(sessionSize.value)
   if (!list.length) return
-  const size = Math.min(sessionSize.value, list.length)
-  order.value = list.slice(0, size)
+  order.value = list
   index.value = 0
   showSentence.value = false
   typed.value = ''
@@ -158,6 +289,21 @@ async function toggleStarCurrent() {
   await store.toggleStar(current.value.id)
 }
 
+async function handleNoteBlur() {
+  if (!current.value || noteSaving.value) return
+  const sentence = current.value
+  const value = noteDraft.value ?? ''
+  if ((sentence.note ?? '') === value) return
+  noteSaving.value = true
+  try {
+    await store.updateNote(sentence.id, value)
+  } catch (err) {
+    noteDraft.value = sentence.note ?? ''
+  } finally {
+    noteSaving.value = false
+  }
+}
+
 function handleSwipe(dir) {
   if (swipeClass.value || !order.value.length) return
   if (dir === 'left') {
@@ -206,6 +352,24 @@ useSwipe(cardRef, {
 })
 
 const current = computed(() => order.value[index.value])
+
+watch(
+  () => current.value?.id,
+  () => {
+    noteDraft.value = current.value?.note ?? ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => current.value?.note,
+  newValue => {
+    const normalized = newValue ?? ''
+    if (normalized !== noteDraft.value) {
+      noteDraft.value = normalized
+    }
+  }
+)
 </script>
 
 <template>
@@ -359,9 +523,42 @@ const current = computed(() => order.value[index.value])
           @click="flip"
           @animationend="handleAnimationEnd"
         >
-          <div class="face front flex items-center justify-start text-xl p-4 overflow-auto">
-            <span v-if="current" v-html="current.translation" class="text-gray-600 text-left"></span>
-            <span v-else>No cards</span>
+          <div class="face front flex flex-col text-xl p-4">
+            <div class="flex-1 overflow-auto text-left text-gray-600">
+              <span v-if="current" v-html="current.translation" class="block"></span>
+              <span v-else>No cards</span>
+            </div>
+            <div
+              v-if="current && !showSentence"
+              class="mt-4"
+              @click.stop
+            >
+              <div class="relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-4 h-4 absolute left-0 top-1/2 -translate-y-1/2 text-gray-400"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.02M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                  />
+                </svg>
+                <input
+                  v-model="noteDraft"
+                  type="text"
+                  :disabled="noteSaving"
+                  class="w-full pl-6 border-0 border-b border-gray-300 bg-transparent text-sm text-gray-700 focus:border-blue-500 focus:outline-none py-1"
+                  placeholder="Add a note"
+                  @blur="handleNoteBlur"
+                />
+              </div>
+            </div>
           </div>
           <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
             <span v-if="current" v-html="current.text" class="text-left"></span>
