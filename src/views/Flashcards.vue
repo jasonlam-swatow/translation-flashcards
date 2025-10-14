@@ -523,14 +523,17 @@ watch(
           @click="flip"
           @animationend="handleAnimationEnd"
         >
-          <div class="face front flex flex-col text-xl p-4">
-            <div class="flex-1 overflow-auto text-left text-gray-600">
-              <span v-if="current" v-html="current.translation" class="block"></span>
-              <span v-else>No cards</span>
-            </div>
+          <div class="face front flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-if="current" v-html="current.translation" class="text-gray-600 text-left"></span>
+            <span v-else>No cards</span>
+          </div>
+          <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
+            <span v-if="current" v-html="current.text" class="text-left"></span>
+            <span v-else>No cards</span>
+
             <div
               v-if="current && !showSentence"
-              class="mt-4"
+              class="mt-4 absolute bottom-4" style="width: calc(100% - 2rem)"
               @click.stop
             >
               <div class="relative">
@@ -559,10 +562,6 @@ watch(
                 />
               </div>
             </div>
-          </div>
-          <div class="face back flex items-center justify-start text-xl p-4 overflow-auto">
-            <span v-if="current" v-html="current.text" class="text-left"></span>
-            <span v-else>No cards</span>
           </div>
         </div>
         <div
