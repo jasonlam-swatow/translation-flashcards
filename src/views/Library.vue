@@ -22,7 +22,9 @@ const learnedCount = computed(() =>
 
 const filteredSentences = computed(() => {
   let list = sentences.value
-  if (filter.value === 'learned') list = list.filter(s => s.learnedAt)
+  if (filter.value === 'learned')
+    list = list.filter(s => s.learnedAt)
+      .sort((a, b) => new Date(b.learnedAt) - new Date(a.learnedAt))
   if (keyword.value.trim()) {
     const k = keyword.value.toLowerCase()
     list = list.filter(
@@ -330,6 +332,24 @@ function reset() {
         <div class="h-full flex flex-col justify-center text-xl overflow-auto whitespace-pre-line">
           <div v-html="preview.text"></div>
           <div class="text-lg mt-4 text-gray-600" v-html="preview.translation"></div>
+          <div class="mt-4 absolute bottom-4" style="width: calc(100% - 2rem)">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-4 h-4 absolute left-0 top-1/2 -translate-y-1/2 text-gray-400"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.02M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+              />
+            </svg>
+            <span text-sm text-gray-700>{{ preview.note }}</span>
+          </div>
         </div>
       </div>
     </div>
