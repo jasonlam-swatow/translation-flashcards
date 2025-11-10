@@ -6,7 +6,7 @@ import { storeToRefs } from 'pinia'
 const store = useSentencesStore()
 const { sentences, loading } = storeToRefs(store)
 
-const form = reactive({ text: '', translation: '' })
+const form = reactive({ text: '', translation: '', note: '' })
 const editingId = ref(null)
 const quick = ref('')
 const showForm = ref(false)
@@ -61,11 +61,20 @@ watch(keyword, () => {
 })
 
   async function save() {
-    if (!form.text.trim() || !form.translation.trim()) return
+    const text = form.text.trim()
+    const translation = form.translation.trim()
+    const note = form.note?.trim() ?? ''
+    if (!text || !translation) return
     if (editingId.value) {
-      await store.update(editingId.value, form.text, form.translation)
+      const id = editingId.value
+      const existing = sentences.value.find(s => s.id === id)
+      const previousNote = existing?.note ?? ''
+      await store.update(id, form.text, form.translation)
+      if (previousNote !== note) {
+        await store.updateNote(id, note)
+      }
     } else {
-      await store.add(form.text, form.translation)
+      await store.add(form.text, form.translation, note)
     }
     reset()
   }
@@ -73,6 +82,7 @@ watch(keyword, () => {
   function edit(item) {
     form.text = item.rawText
     form.translation = item.rawTranslation
+    form.note = item.note ?? ''
     editingId.value = item.id
     showForm.value = true
   }
@@ -85,6 +95,7 @@ watch(keyword, () => {
 function reset() {
   form.text = ''
   form.translation = ''
+  form.note = ''
   editingId.value = null
 }
 
@@ -173,6 +184,29 @@ function reset() {
     <form v-if="showForm" @submit.prevent="save" class="space-y-2 mb-6">
       <textarea v-model="form.text" placeholder="Sentence" class="input resize-y" rows="3" />
       <textarea v-model="form.translation" placeholder="Translation" class="input resize-y" rows="3" />
+      <div class="relative">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-4 h-4 absolute left-0 top-1/2 -translate-y-1/2 text-gray-400"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.02M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+          />
+        </svg>
+        <input
+          v-model="form.note"
+          type="text"
+          class="w-full pl-6 border-0 border-b border-gray-300 bg-transparent text-sm text-gray-700 focus:border-blue-500 focus:outline-none py-1"
+          placeholder="Note (optional)"
+        />
+      </div>
       <div class="space-x-2">
         <button type="submit" class="btn inline-flex items-center gap-1">
           <svg
@@ -265,6 +299,24 @@ function reset() {
         >
           <p class="font-semibold truncate" v-html="item.text"></p>
           <p class="text-gray-600 truncate" v-html="item.translation"></p>
+          <div v-if="item.note" class="mt-1 flex items-start gap-1 text-sm text-gray-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-4 h-4 flex-shrink-0 text-gray-400 mt-0.5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.02M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+              />
+            </svg>
+            <span class="truncate">{{ item.note }}</span>
+          </div>
         </div>
         <div class="flex-shrink-0 flex flex-col items-center space-y-2">
           <button class="text-blue-500" @click="edit(item)" aria-label="Edit">

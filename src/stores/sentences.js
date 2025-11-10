@@ -29,11 +29,12 @@ export const useSentencesStore = defineStore('sentences', () => {
     }
   }
 
-  async function add(text, translation) {
+  async function add(text, translation, note = '') {
     loading.value = true
     try {
       const rawText = stripLinks(text)
       const rawTranslation = stripLinks(translation)
+      const trimmedNote = note.trim()
       const res = await fetch('/api/sentences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,6 +43,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           translation: formatText(rawTranslation),
           rawText,
           rawTranslation,
+          note: trimmedNote,
         }),
       })
       let item
@@ -57,7 +59,7 @@ export const useSentencesStore = defineStore('sentences', () => {
           createdAt: new Date().toISOString(),
           learnedAt: null,
           starred: false,
-          note: '',
+          note: trimmedNote,
         }
       }
       sentences.value.unshift(item)

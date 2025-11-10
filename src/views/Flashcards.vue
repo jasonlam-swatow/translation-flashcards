@@ -25,29 +25,34 @@ const noteSaving = ref(false)
 const isRevision = ref(false)
 
 const revisionWeights = [4, 3, 2, 1]
+const DAY_MS = 24 * 60 * 60 * 1000
+const MOST_RECENT_DAYS = 4
+const QUITE_RECENT_DAYS = 14
 
 function buildRevisionGroups() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  const twoDaysAgo = new Date(today)
-  twoDaysAgo.setDate(today.getDate() - 2)
   const candidates = sentences.value.filter(s => s.learnedAt && !revised.value.has(s.id))
-  const starred = candidates.filter(s => s.starred)
-  const day1 = candidates.filter(
-    s => !s.starred && new Date(s.learnedAt) >= yesterday
-  )
-  const day2 = candidates.filter(
-    s =>
-      !s.starred &&
-      new Date(s.learnedAt) >= twoDaysAgo &&
-      new Date(s.learnedAt) < yesterday
-  )
-  const older = candidates.filter(
-    s => !s.starred && new Date(s.learnedAt) < twoDaysAgo
-  )
-  return [starred, day1, day2, older].map((items, index) => ({
+  // Bucket order matches revisionWeights: recent, recent-starred, older-starred, older-unstarred.
+  const groups = [[], [], [], []]
+  for (const sentence of candidates) {
+    const learnedDate = new Date(sentence.learnedAt)
+    const daysSinceLearned = Math.max(0, (today - learnedDate) / DAY_MS)
+    if (daysSinceLearned <= MOST_RECENT_DAYS) {
+      groups[0].push(sentence)
+      continue
+    }
+    if (sentence.starred && daysSinceLearned <= QUITE_RECENT_DAYS) {
+      groups[1].push(sentence)
+      continue
+    }
+    if (sentence.starred) {
+      groups[2].push(sentence)
+      continue
+    }
+    groups[3].push(sentence)
+  }
+  return groups.map((items, index) => ({
     items: shuffle([...items]),
     weight: revisionWeights[index],
     index,
